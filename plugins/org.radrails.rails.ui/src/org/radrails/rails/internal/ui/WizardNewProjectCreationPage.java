@@ -31,7 +31,6 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.custom.CLabel;
 import org.eclipse.swt.custom.StackLayout;
 import org.eclipse.swt.custom.StyleRange;
@@ -447,46 +446,7 @@ public class WizardNewProjectCreationPage extends WizardPage
 		githubGroup.setLayout(githubStackLayout);
 		githubGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-		Composite githubControls = new Composite(githubGroup, SWT.NONE);
-		githubControls.setLayout(new GridLayout(1, false));
-		githubControls.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-
-		Button manageSourceWithGit = new Button(githubControls, SWT.CHECK);
-		manageSourceWithGit.setText("Manage my source code with git");
-		manageSourceWithGit.setSelection(true); // TODO Only show the following items if this is checked, we need to listen for selection
-
-		boolean hasGithubCredentials = false; // TODO Ask for git global values in config for github.user/github.token
-		if (!hasGithubCredentials)
-		{
-			Browser browser = new Browser(githubControls, SWT.NONE);
-			browser.setUrl("http://github.com/"); // FIXME Get the right URl to point to for the ad
-
-			GridData gd = new GridData(GridData.FILL_HORIZONTAL);
-			gd.widthHint = SIZING_TEXT_FIELD_WIDTH;
-			gd.heightHint = 150;
-			browser.setLayoutData(gd);
-		}
-		else
-		{
-			// TODO Indent this stuff
-			Button publishToGithub = new Button(githubControls, SWT.CHECK);
-			publishToGithub.setText("Publish this project on my github account as:");
-			publishToGithub.setSelection(true);
-
-			Composite githubProjectComp = new Composite(githubControls, SWT.NONE);
-			githubProjectComp.setLayout(new GridLayout(2, false));
-			githubProjectComp.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-
-			Text githubProjectName = new Text(githubProjectComp, SWT.BORDER | SWT.SINGLE);
-			githubProjectName.setText(getProjectName());
-
-			GridData data = new GridData(GridData.FILL_HORIZONTAL);
-			data.widthHint = SIZING_TEXT_FIELD_WIDTH;
-			githubProjectName.setLayoutData(data);
-
-			Button privateRepo = new Button(githubProjectComp, SWT.CHECK);
-			privateRepo.setText("Private");
-		}
+		Composite githubControls = new GithubComposite(this, githubGroup, SWT.NONE);
 
 		githubStackLayout.topControl = githubControls;
 		githubGroup.layout();
