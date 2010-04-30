@@ -1,5 +1,7 @@
 package org.radrails.rails.internal.ui;
 
+import java.util.Map;
+
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -7,7 +9,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
@@ -19,12 +20,12 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
+import org.radrails.rails.ui.RailsUIPlugin;
 
 import com.aptana.git.core.GitPlugin;
+import com.aptana.git.core.model.GitExecutable;
 import com.aptana.git.core.model.GitRepository;
 import com.aptana.git.core.model.IGitRepositoryManager;
-import com.aptana.git.ui.actions.AddRemoteAction;
-import com.aptana.git.ui.actions.PushAction;
 
 public class GithubComposite extends Composite
 {
@@ -232,35 +233,97 @@ public class GithubComposite extends Composite
 				if (subMonitor.isCanceled())
 					return Status.CANCEL_STATUS;
 
-				IStatus status = api.createRepo(repoName, privateRepo, subMonitor.newChild(25));
-				if (!status.isOK())
-					return status;
-
-				// Initialize a git repo...
 				try
 				{
-					GitRepository repo = getGitRepositoryManager().createOrAttach(project, subMonitor.newChild(25));
+					String repoAddress = api.createRepo(repoName, privateRepo, subMonitor.newChild(30));
+
+					// Initialize a git repo...
+					final GitRepository repo = getGitRepositoryManager().createOrAttach(project,
+							subMonitor.newChild(25));
+					
 					// Stage everything
 					repo.index().stageFiles(repo.index().changedFiles());
+					subMonitor.worked(5);
+					
+					// Commit
 					repo.index().commit("Initial commit");
+					subMonitor.worked(5);
 
-					// TODO Add remote: git remote add origin git@github.com:sgtcoolguy/test.git
-					AddRemoteAction addRemoteAction = new AddRemoteAction();
-					// FIXME This pops a dialog. We want to do the under the covers stuff only. Need to refactor it!
-					// FIXME Ends up causing a NullPointer!
-					addRemoteAction.selectionChanged(null, new StructuredSelection(project));
-					addRemoteAction.run();
+					final String remoteName = "origin"; //$NON-NLS-1$
+					final String localBranchName = "master"; //$NON-NLS-1$
 
-					// FIXME Is there some way to set up the repo so that master tracks origin/master?
+					// Add Github remote, TODO Add to model
+					Map<Integer, String> result = GitExecutable.instance().runInBackground(repo.workingDirectory(),
+							"remote", "add", remoteName, repoAddress); //$NON-NLS-1$ //$NON-NLS-2$
+					if (result == null)
+					{
+						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(),
+								"Failed to add github remote to git repository"));
+					}
+					// Non-zero exit code!
+					if (result.keySet().iterator().next() != 0)
+					{
+						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), result
+								.values().iterator().next()));
+					}
+					subMonitor.worked(5);
 
-					// TODO Push: git push origin master
-					PushAction pushAction = new PushAction();
-					pushAction.selectionChanged(null, new StructuredSelection(project));
-					pushAction.run();
+					// push origin master, TODO Add to model
+					result = GitExecutable.instance().runInBackground(repo.workingDirectory(),
+							"push", remoteName, localBranchName); //$NON-NLS-1$
+					if (result == null)
+					{
+						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(),
+								"Failed to push to github remote"));
+					}
+					// Non-zero exit code!
+					if (result.keySet().iterator().next() != 0)
+					{
+						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), result
+								.values().iterator().next()));
+					}
+					repo.firePushEvent();
+					subMonitor.worked(20);
+
+					// set remote for our local branch, TODO Add to model
+					result = GitExecutable.instance().runInBackground(repo.workingDirectory(),
+							"config", "branch." + localBranchName + ".remote", remoteName); //$NON-NLS-1$ //$NON-NLS-2$
+					if (result == null)
+					{
+						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(),
+								"Failed to set github remote for local branch"));
+					}
+					// Non-zero exit code!
+					if (result.keySet().iterator().next() != 0)
+					{
+						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), result
+								.values().iterator().next()));
+					}
+					subMonitor.worked(5);
+
+					// set merge for our local branch, TODO Add to model
+					result = GitExecutable.instance().runInBackground(repo.workingDirectory(),
+							"config", "branch." + localBranchName + ".merge", "refs/heads/" + localBranchName); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+					if (result == null)
+					{
+						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(),
+								"Failed to set merge point for branch"));
+					}
+					// Non-zero exit code!
+					if (result.keySet().iterator().next() != 0)
+					{
+						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), result
+								.values().iterator().next()));
+					}
+					subMonitor.worked(5);
 				}
 				catch (CoreException e)
 				{
 					return e.getStatus();
+				}
+				finally
+				{
+					subMonitor.done();
 				}
 				return Status.OK_STATUS;
 			}

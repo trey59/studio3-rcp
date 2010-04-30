@@ -6,12 +6,14 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.text.MessageFormat;
 
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.radrails.rails.ui.RailsUIPlugin;
 
 import com.aptana.git.core.model.GitExecutable;
+import com.aptana.util.IOUtil;
 
 public class GithubAPI
 {
@@ -76,9 +78,8 @@ public class GithubAPI
 		return new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), "Unknown error");
 	}
 
-	public IStatus createRepo(String repoName, boolean makePrivate, IProgressMonitor monitor)
+	public String createRepo(String repoName, boolean makePrivate, IProgressMonitor monitor) throws CoreException
 	{
-		// TODO Finish and test!
 		HttpURLConnection connection = null;
 		try
 		{
@@ -95,16 +96,23 @@ public class GithubAPI
 
 			connection = excutePost(userURL, builder.toString());
 			int responseCode = connection.getResponseCode();
-
 			if (responseCode == 200)
-				return Status.OK_STATUS;
+			{
+				// TODO Grab the generated repo url, name and owner are in the response!
+				String contents = IOUtil.read(connection.getInputStream());
+				return MessageFormat.format("git@github.com:{0}/{1}.git", username, repoName); //$NON-NLS-1$
+			}
 
 			if (responseCode == 401)
-				return new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), "Authentication failed");
+				throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), "Authentication failed"));
+		}
+		catch (CoreException e)
+		{
+			throw e;
 		}
 		catch (Exception e)
 		{
-			return new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), e.getMessage(), e);
+			throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), e.getMessage(), e));
 		}
 		finally
 		{
@@ -113,7 +121,7 @@ public class GithubAPI
 				connection.disconnect();
 			}
 		}
-		return new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), "Unknown error");
+		throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), "Unknown error"));
 	}
 
 	@SuppressWarnings("nls")
