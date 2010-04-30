@@ -240,11 +240,11 @@ public class GithubComposite extends Composite
 					// Initialize a git repo...
 					final GitRepository repo = getGitRepositoryManager().createOrAttach(project,
 							subMonitor.newChild(25));
-					
+
 					// Stage everything
 					repo.index().stageFiles(repo.index().changedFiles());
 					subMonitor.worked(5);
-					
+
 					// Commit
 					repo.index().commit("Initial commit");
 					subMonitor.worked(5);
@@ -268,7 +268,7 @@ public class GithubComposite extends Composite
 					}
 					subMonitor.worked(5);
 
-					// push origin master, TODO Add to model
+					// push origin master TODO Add to model?
 					result = GitExecutable.instance().runInBackground(repo.workingDirectory(),
 							"push", remoteName, localBranchName); //$NON-NLS-1$
 					if (result == null)
@@ -285,37 +285,8 @@ public class GithubComposite extends Composite
 					repo.firePushEvent();
 					subMonitor.worked(20);
 
-					// set remote for our local branch, TODO Add to model
-					result = GitExecutable.instance().runInBackground(repo.workingDirectory(),
-							"config", "branch." + localBranchName + ".remote", remoteName); //$NON-NLS-1$ //$NON-NLS-2$
-					if (result == null)
-					{
-						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(),
-								"Failed to set github remote for local branch"));
-					}
-					// Non-zero exit code!
-					if (result.keySet().iterator().next() != 0)
-					{
-						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), result
-								.values().iterator().next()));
-					}
-					subMonitor.worked(5);
-
-					// set merge for our local branch, TODO Add to model
-					result = GitExecutable.instance().runInBackground(repo.workingDirectory(),
-							"config", "branch." + localBranchName + ".merge", "refs/heads/" + localBranchName); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-					if (result == null)
-					{
-						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(),
-								"Failed to set merge point for branch"));
-					}
-					// Non-zero exit code!
-					if (result.keySet().iterator().next() != 0)
-					{
-						throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), result
-								.values().iterator().next()));
-					}
-					subMonitor.worked(5);
+					repo.addRemoteTrackingBranch(localBranchName, remoteName);
+					subMonitor.worked(10);
 				}
 				catch (CoreException e)
 				{
