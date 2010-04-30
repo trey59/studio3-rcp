@@ -59,6 +59,8 @@ import org.eclipse.ui.internal.ide.IIDEHelpContextIds;
 import org.eclipse.ui.internal.ide.dialogs.IDEResourceInfoUtils;
 import org.radrails.rails.ui.RailsUIPlugin;
 
+import com.aptana.github.GithubComposite;
+
 /**
  * Standard main page for a wizard that is creates a project resource.
  * <p>
