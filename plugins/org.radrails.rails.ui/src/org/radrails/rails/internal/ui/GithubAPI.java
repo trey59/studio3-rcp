@@ -10,6 +10,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.json.JSONObject;
 import org.radrails.rails.ui.RailsUIPlugin;
 
 import com.aptana.git.core.model.GitExecutable;
@@ -98,13 +99,17 @@ public class GithubAPI
 			int responseCode = connection.getResponseCode();
 			if (responseCode == 200)
 			{
-				// TODO Grab the generated repo url, name and owner are in the response!
+				// Build the generated repo by grabbing name in the response! (Just grab and return the url value?)
 				String contents = IOUtil.read(connection.getInputStream());
-				return MessageFormat.format("git@github.com:{0}/{1}.git", username, repoName); //$NON-NLS-1$
+				JSONObject object = new JSONObject(contents);
+				JSONObject repository = object.getJSONObject("repository"); //$NON-NLS-1$
+				String newRepoName = (String) repository.get("name"); //$NON-NLS-1$
+				return MessageFormat.format("git@github.com:{0}/{1}.git", username, newRepoName); //$NON-NLS-1$
 			}
 
 			if (responseCode == 401)
-				throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), "Authentication failed"));
+				throw new CoreException(new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(),
+						"Authentication failed"));
 		}
 		catch (CoreException e)
 		{

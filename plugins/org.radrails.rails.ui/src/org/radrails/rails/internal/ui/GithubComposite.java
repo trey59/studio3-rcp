@@ -239,7 +239,7 @@ public class GithubComposite extends Composite
 
 					// Initialize a git repo...
 					final GitRepository repo = getGitRepositoryManager().createOrAttach(project,
-							subMonitor.newChild(25));
+							subMonitor.newChild(20));
 
 					// Stage everything
 					repo.index().stageFiles(repo.index().changedFiles());
@@ -283,7 +283,7 @@ public class GithubComposite extends Composite
 								.values().iterator().next()));
 					}
 					repo.firePushEvent();
-					subMonitor.worked(20);
+					subMonitor.worked(25);
 
 					repo.addRemoteTrackingBranch(localBranchName, remoteName);
 					subMonitor.worked(10);
