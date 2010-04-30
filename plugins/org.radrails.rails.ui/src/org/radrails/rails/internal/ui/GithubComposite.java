@@ -1,13 +1,13 @@
 package org.radrails.rails.internal.ui;
 
-import java.io.DataOutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.text.MessageFormat;
-
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.SubMonitor;
+import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
@@ -19,9 +19,12 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
-import org.radrails.rails.ui.RailsUIPlugin;
 
-import com.aptana.git.core.model.GitExecutable;
+import com.aptana.git.core.GitPlugin;
+import com.aptana.git.core.model.GitRepository;
+import com.aptana.git.core.model.IGitRepositoryManager;
+import com.aptana.git.ui.actions.AddRemoteAction;
+import com.aptana.git.ui.actions.PushAction;
 
 public class GithubComposite extends Composite
 {
@@ -32,6 +35,11 @@ public class GithubComposite extends Composite
 	private Composite signupLoginComp;
 	private Composite publishComp;
 	private WizardPage page;
+	private Text repoName;
+	private Button publishToGithub;
+	private Button privateRepo;
+
+	private GithubAPI api;
 
 	public GithubComposite(WizardPage page, Composite parent, int style)
 	{
@@ -50,9 +58,8 @@ public class GithubComposite extends Composite
 		manageSourceWithGit.setText("Manage my source code with git");
 		manageSourceWithGit.setSelection(true); // TODO Only show the following items if this is checked, we need to
 												// listen for selection
-
-		String githubUser = GitExecutable.instance().outputForCommand(null, "config", "--global", "github.user");
-		String githubToken = GitExecutable.instance().outputForCommand(null, "config", "--global", "github.token");
+		String githubUser = GithubAPI.getConfiguredUsername();
+		String githubToken = GithubAPI.getConfiguredToken();
 
 		// Login/Sign up
 		signupLoginComp = new Composite(githubControls, SWT.NONE);
@@ -85,10 +92,6 @@ public class GithubComposite extends Composite
 		{
 			username.setText(githubUser);
 		}
-		else
-		{
-			// username.setText(githubUser); // TODO Grab current username from system?
-		}
 
 		GridData data = new GridData(GridData.FILL_HORIZONTAL);
 		data.widthHint = TEXT_FIELD_WIDTH;
@@ -119,9 +122,12 @@ public class GithubComposite extends Composite
 			@Override
 			public void widgetSelected(SelectionEvent e)
 			{
-				IStatus status = authenticate(username.getText(), password.getText());
+				GithubAPI newAPI = new GithubAPI(username.getText(), password.getText());
+				IStatus status = newAPI.authenticate();
 				if (status.isOK())
 				{
+					// TODO Store them in git by setting them in config?
+					api = newAPI;
 					// Yay everything's hunky-dory
 					setErrorMessage(null);
 					hideLogin();
@@ -139,8 +145,7 @@ public class GithubComposite extends Composite
 		publishComp.setLayout(new GridLayout(1, false));
 		publishComp.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-		// TODO Indent this stuff
-		Button publishToGithub = new Button(publishComp, SWT.CHECK);
+		publishToGithub = new Button(publishComp, SWT.CHECK);
 		publishToGithub.setText("Publish this project on my github account as:");
 		publishToGithub.setSelection(true);
 
@@ -148,17 +153,19 @@ public class GithubComposite extends Composite
 		githubProjectComp.setLayout(new GridLayout(2, false));
 		githubProjectComp.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-		Text githubProjectName = new Text(githubProjectComp, SWT.BORDER | SWT.SINGLE);
-		// githubProjectName.setText(); // TODO Grab project name and convert it?
+		repoName = new Text(githubProjectComp, SWT.BORDER | SWT.SINGLE);
 
 		data = new GridData(GridData.FILL_HORIZONTAL);
 		data.widthHint = TEXT_FIELD_WIDTH;
-		githubProjectName.setLayoutData(data);
+		repoName.setLayoutData(data);
 
-		Button privateRepo = new Button(githubProjectComp, SWT.CHECK);
+		// TODO Need to enable/disable based on whether user can even create one!
+		privateRepo = new Button(githubProjectComp, SWT.CHECK);
 		privateRepo.setText("Private");
 
-		if (authenticate(githubUser, githubToken).isOK())
+		// TODO Do this async so we don't hang the UI!
+		api = new GithubAPI(githubUser, githubToken);
+		if (api.authenticate().isOK())
 		{
 			hideLogin();
 		}
@@ -166,44 +173,6 @@ public class GithubComposite extends Composite
 		{
 			hidePublish();
 		}
-	}
-
-	/**
-	 * Check auth against github.
-	 * 
-	 * @param username
-	 * @param token
-	 * @return
-	 */
-	private IStatus authenticate(String username, String token)
-	{
-		HttpURLConnection connection = null;
-		try
-		{
-			String userURL = MessageFormat.format("https://github.com/api/v2/json/user/show/{0}", username); //$NON-NLS-1$
-			String urlParameters = "login=" + URLEncoder.encode(username, "UTF-8") + "&token="
-					+ URLEncoder.encode(token, "UTF-8");
-			connection = excutePost(userURL, urlParameters);
-			int responseCode = connection.getResponseCode();
-
-			if (responseCode == 200)
-				return Status.OK_STATUS;
-
-			if (responseCode == 401)
-				return new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), "Authentication failed");
-		}
-		catch (Exception e)
-		{
-			return new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), e.getMessage(), e);
-		}
-		finally
-		{
-			if (connection != null)
-			{
-				connection.disconnect();
-			}
-		}
-		return new Status(IStatus.ERROR, RailsUIPlugin.getPluginIdentifier(), "Unknown error");
 	}
 
 	protected void showPublishControls()
@@ -221,6 +190,7 @@ public class GithubComposite extends Composite
 
 	private void hidePublish()
 	{
+		publishToGithub.setSelection(false);
 		publishComp.setVisible(false);
 		// need to exclude
 		GridData gd = (GridData) publishComp.getLayoutData();
@@ -232,37 +202,76 @@ public class GithubComposite extends Composite
 		page.setErrorMessage(message);
 	}
 
-	private static HttpURLConnection excutePost(String targetURL, String urlParameters)
+	public void updateProjectName(String projectName)
 	{
-		URL url;
-		HttpURLConnection connection = null;
-		try
+		// TODO Don't update if user entered something manually.
+		repoName.setText(projectName);
+	}
+
+	public void updateUsername(String username)
+	{
+		// TODO Don't update if user entered something manually.
+		this.username.setText(username);
+	}
+
+	public boolean shouldCreateRepo()
+	{
+		return publishToGithub.getSelection();
+	}
+
+	public Job createRepo(final IProject project)
+	{
+		final String repoName = this.repoName.getText();
+		final boolean privateRepo = this.privateRepo.getSelection();
+		Job job = new Job("Creating Github Repo")
 		{
-			// Create connection
-			url = new URL(targetURL);
-			connection = (HttpURLConnection) url.openConnection();
-			connection.setRequestMethod("POST");
-			connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+			@Override
+			public IStatus run(IProgressMonitor monitor)
+			{
+				SubMonitor subMonitor = SubMonitor.convert(monitor, 100);
+				if (subMonitor.isCanceled())
+					return Status.CANCEL_STATUS;
 
-			connection.setRequestProperty("Content-Length", "" + Integer.toString(urlParameters.getBytes().length));
-			connection.setRequestProperty("Content-Language", "en-US");
+				IStatus status = api.createRepo(repoName, privateRepo, subMonitor.newChild(25));
+				if (!status.isOK())
+					return status;
 
-			connection.setUseCaches(false);
-			connection.setDoInput(true);
-			connection.setDoOutput(true);
+				// Initialize a git repo...
+				try
+				{
+					GitRepository repo = getGitRepositoryManager().createOrAttach(project, subMonitor.newChild(25));
+					// Stage everything
+					repo.index().stageFiles(repo.index().changedFiles());
+					repo.index().commit("Initial commit");
 
-			// Send request
-			DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-			wr.writeBytes(urlParameters);
-			wr.flush();
-			wr.close();
+					// TODO Add remote: git remote add origin git@github.com:sgtcoolguy/test.git
+					AddRemoteAction addRemoteAction = new AddRemoteAction();
+					// FIXME This pops a dialog. We want to do the under the covers stuff only. Need to refactor it!
+					// FIXME Ends up causing a NullPointer!
+					addRemoteAction.selectionChanged(null, new StructuredSelection(project));
+					addRemoteAction.run();
 
-			return connection;
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-			return null;
-		}
+					// FIXME Is there some way to set up the repo so that master tracks origin/master?
+
+					// TODO Push: git push origin master
+					PushAction pushAction = new PushAction();
+					pushAction.selectionChanged(null, new StructuredSelection(project));
+					pushAction.run();
+				}
+				catch (CoreException e)
+				{
+					return e.getStatus();
+				}
+				return Status.OK_STATUS;
+			}
+		};
+		job.setUser(true);
+		job.setPriority(Job.SHORT);
+		return job;
+	}
+
+	protected IGitRepositoryManager getGitRepositoryManager()
+	{
+		return GitPlugin.getDefault().getGitRepositoryManager();
 	}
 }

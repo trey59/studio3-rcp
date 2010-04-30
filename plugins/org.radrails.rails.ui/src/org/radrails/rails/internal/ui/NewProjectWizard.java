@@ -17,7 +17,9 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.SubMonitor;
+import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
@@ -100,6 +102,7 @@ public class NewProjectWizard extends BasicNewResourceWizard implements IExecuta
 		// HACK I have to query for this here, because otherwise when we generate the project somehow the fields get
 		// focus and that auto changes the radio selection value for generation
 		boolean runGenerator = mainPage.runGenerator();
+		boolean createRepo = mainPage.publishToGithubRepo();
 		createNewProject();
 
 		if (newProject == null)
@@ -110,13 +113,39 @@ public class NewProjectWizard extends BasicNewResourceWizard implements IExecuta
 		updatePerspective();
 		selectAndReveal(newProject);
 
+		Job runGeneratorJob = null;
 		if (runGenerator)
-			runGenerator();
+		{
+			runGeneratorJob = runGenerator();
+		}
+
+		if (createRepo)
+		{
+			final Job createGithubRepoJob = mainPage.createGithubRepo();
+			if (runGeneratorJob != null)
+			{
+				runGeneratorJob.addJobChangeListener(new JobChangeAdapter()
+				{
+					@Override
+					public void done(IJobChangeEvent event)
+					{
+						createGithubRepoJob.schedule();
+					}
+				});
+			}
+			else
+			{
+				createGithubRepoJob.schedule();
+			}
+		}
+		
+		if (runGeneratorJob != null)
+			runGeneratorJob.schedule();
 
 		return true;
 	}
 
-	private void runGenerator()
+	private Job runGenerator()
 	{
 		// Pop open a confirmation dialog if the project already has a config/environment.rb file!
 		File projectFile = newProject.getLocation().toFile();
@@ -125,7 +154,7 @@ public class NewProjectWizard extends BasicNewResourceWizard implements IExecuta
 		{
 			if (!MessageDialog.openConfirm(getShell(), Messages.NewProjectWizard_ContentsAlreadyExist_Title,
 					Messages.NewProjectWizard_ContentsAlreadyExist_Msg))
-				return;
+				return null;
 		}
 		final IProject project = newProject;
 		Job job = new UIJob(Messages.NewProjectWizard_JobTitle)
@@ -146,7 +175,7 @@ public class NewProjectWizard extends BasicNewResourceWizard implements IExecuta
 		};
 		job.setUser(true);
 		job.setPriority(Job.SHORT);
-		job.schedule();
+		return job;
 	}
 
 	/**

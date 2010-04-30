@@ -28,6 +28,7 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
@@ -107,6 +108,7 @@ public class WizardNewProjectCreationPage extends WizardPage
 	private Composite projectGenerationControls;
 	private CLabel projectGenerationErrorLabel;
 	private boolean hasRailsAppFiles;
+	private GithubComposite githubControls;
 
 	// constants
 	private static final int SIZING_TEXT_FIELD_WIDTH = 250;
@@ -446,7 +448,7 @@ public class WizardNewProjectCreationPage extends WizardPage
 		githubGroup.setLayout(githubStackLayout);
 		githubGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-		Composite githubControls = new GithubComposite(this, githubGroup, SWT.NONE);
+		githubControls = new GithubComposite(this, githubGroup, SWT.NONE);
 
 		githubStackLayout.topControl = githubControls;
 		githubGroup.layout();
@@ -624,6 +626,10 @@ public class WizardNewProjectCreationPage extends WizardPage
 			lastGitDefault = MessageFormat.format("git://github.com/{0}/{1}.git", username, trim); //$NON-NLS-1$
 			gitLocation.setText(lastGitDefault);
 		}
+		
+		// Update the github stuff too!
+		githubControls.updateProjectName(trim);
+		githubControls.updateUsername(username);
 	}
 
 	private boolean locationMatchesLastDefault()
@@ -693,6 +699,8 @@ public class WizardNewProjectCreationPage extends WizardPage
 			setErrorMessage(validLocationMessage);
 			return false;
 		}
+		
+		// TODO Validate the github stuff
 
 		setErrorMessage(null);
 		setMessage(null);
@@ -810,5 +818,15 @@ public class WizardNewProjectCreationPage extends WizardPage
 
 		abstract protected boolean isDefault();
 
+	}
+
+	public boolean publishToGithubRepo()
+	{
+		return githubControls.shouldCreateRepo();
+	}
+
+	public Job createGithubRepo()
+	{
+		return githubControls.createRepo(getProjectHandle());		
 	}
 }
