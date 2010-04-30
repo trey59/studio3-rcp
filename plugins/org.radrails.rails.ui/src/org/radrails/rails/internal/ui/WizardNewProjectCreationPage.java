@@ -59,6 +59,7 @@ import org.eclipse.ui.internal.ide.IIDEHelpContextIds;
 import org.eclipse.ui.internal.ide.dialogs.IDEResourceInfoUtils;
 import org.radrails.rails.ui.RailsUIPlugin;
 
+import com.aptana.github.GithubAPI;
 import com.aptana.github.GithubComposite;
 
 /**
@@ -620,7 +621,9 @@ public class WizardNewProjectCreationPage extends WizardPage
 		}
 
 		// Update the git location field
-		String username = System.getProperty("user.name"); //$NON-NLS-1$
+		String username = GithubAPI.getConfiguredUsername();
+		if (username == null || username.length() == 0)
+			username = System.getProperty("user.name"); //$NON-NLS-1$
 		if (username == null || username.length() == 0)
 			username = "user"; //$NON-NLS-1$
 		if (gitLocation.getText().trim().length() == 0 || gitLocationIsDefault())
@@ -628,7 +631,7 @@ public class WizardNewProjectCreationPage extends WizardPage
 			lastGitDefault = MessageFormat.format("git://github.com/{0}/{1}.git", username, trim); //$NON-NLS-1$
 			gitLocation.setText(lastGitDefault);
 		}
-		
+
 		// Update the github stuff too!
 		githubControls.updateProjectName(trim);
 		githubControls.updateUsername(username);
@@ -701,7 +704,7 @@ public class WizardNewProjectCreationPage extends WizardPage
 			setErrorMessage(validLocationMessage);
 			return false;
 		}
-		
+
 		// TODO Validate the github stuff
 
 		setErrorMessage(null);
@@ -829,6 +832,6 @@ public class WizardNewProjectCreationPage extends WizardPage
 
 	public Job createGithubRepo()
 	{
-		return githubControls.createRepo(getProjectHandle());		
+		return githubControls.createRepo(getProjectHandle());
 	}
 }
