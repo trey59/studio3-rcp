@@ -112,6 +112,7 @@ public class WizardNewProjectCreationPage extends WizardPage
 	private CLabel projectGenerationErrorLabel;
 	private boolean hasRailsAppFiles;
 	private GithubComposite githubControls;
+	private Group githubGroup;
 
 	// constants
 	private static final int SIZING_TEXT_FIELD_WIDTH = 250;
@@ -421,6 +422,14 @@ public class WizardNewProjectCreationPage extends WizardPage
 
 		gitCloneGenerate = new Button(projectGenerationControls, SWT.RADIO);
 		gitCloneGenerate.setText(Messages.WizardNewProjectCreationPage_CloneGitRepoLabel);
+		gitCloneGenerate.addSelectionListener(new SelectionAdapter()
+		{
+			@Override
+			public void widgetSelected(SelectionEvent e)
+			{
+				setGithubControlsVisible(!gitCloneGenerate.getSelection());
+			}
+		});
 
 		createGitLocationComposite(projectGenerationControls);
 
@@ -437,6 +446,12 @@ public class WizardNewProjectCreationPage extends WizardPage
 		projectGenerationGroup.layout();
 	}
 
+	protected void setGithubControlsVisible(boolean show)
+	{
+		githubGroup.setVisible(show);
+		((GridData) githubGroup.getLayoutData()).exclude = !show;
+	}
+
 	/**
 	 * Creates the project generation controls.
 	 * 
@@ -445,7 +460,7 @@ public class WizardNewProjectCreationPage extends WizardPage
 	 */
 	private final void createGithubGroup(Composite parent)
 	{
-		Group githubGroup = new Group(parent, SWT.NONE);
+		githubGroup = new Group(parent, SWT.NONE);
 		githubGroup.setText("Manage code");
 		StackLayout githubStackLayout = new StackLayout();
 		githubGroup.setLayout(githubStackLayout);
