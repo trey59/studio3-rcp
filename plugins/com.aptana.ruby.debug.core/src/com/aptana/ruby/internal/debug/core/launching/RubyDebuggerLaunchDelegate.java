@@ -35,12 +35,12 @@ import org.eclipse.debug.core.ILaunchManager;
 import org.eclipse.debug.core.model.IProcess;
 import org.eclipse.debug.core.model.LaunchConfigurationDelegate;
 
+import com.aptana.core.util.ExecutableUtil;
 import com.aptana.ruby.debug.core.RubyDebugCorePlugin;
 import com.aptana.ruby.debug.core.launching.IRubyLaunchConfigurationConstants;
 import com.aptana.ruby.internal.debug.core.RubyDebuggerProxy;
 import com.aptana.ruby.internal.debug.core.model.RubyDebugTarget;
 import com.aptana.ruby.internal.debug.core.model.RubyProcessingException;
-import com.aptana.util.ExecutableUtil;
 
 /**
  * Launches Ruby program on a Ruby interpreter
@@ -163,7 +163,7 @@ public class RubyDebuggerLaunchDelegate extends LaunchConfigurationDelegate
 			ILaunchConfiguration configuration) throws CoreException
 	{
 		List<String> commandList = new ArrayList<String>();
-		IPath rdebug = ExecutableUtil.find("rdebug-ide", false, null, getRDebugIDELocations(rubyExecutablePath)); //$NON-NLS-1$
+		IPath rdebug = ExecutableUtil.find("rdebug-ide", false, getRDebugIDELocations(rubyExecutablePath)); //$NON-NLS-1$
 		if (rdebug == null)
 		{
 			abort(Messages.RubyDebuggerLaunchDelegate_3, null);
@@ -223,10 +223,10 @@ public class RubyDebuggerLaunchDelegate extends LaunchConfigurationDelegate
 	{
 		// Ruby executable, look for rubyw, then ruby
 		// TODO check TM_RUBY env value?
-		IPath path = ExecutableUtil.find(RUBYW, true, null, getCommonRubyBinaryLocations(RUBYW));
+		IPath path = ExecutableUtil.find(RUBYW, true, getCommonRubyBinaryLocations(RUBYW));
 		if (path == null)
 		{
-			path = ExecutableUtil.find(RUBY, true, null, getCommonRubyBinaryLocations(RUBY));
+			path = ExecutableUtil.find(RUBY, true, getCommonRubyBinaryLocations(RUBY));
 		}
 		// TODO If we can't find one, should we just try plain "ruby"?
 		if (path == null)
