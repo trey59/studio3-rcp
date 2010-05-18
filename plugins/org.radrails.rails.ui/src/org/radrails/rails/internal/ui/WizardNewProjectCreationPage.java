@@ -44,6 +44,7 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
@@ -462,14 +463,10 @@ public class WizardNewProjectCreationPage extends WizardPage
 	{
 		githubGroup = new Group(parent, SWT.NONE);
 		githubGroup.setText("Manage code");
-		StackLayout githubStackLayout = new StackLayout();
-		githubGroup.setLayout(githubStackLayout);
-		githubGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+		githubGroup.setLayout(new FillLayout());
+		githubGroup.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 
 		githubControls = new GithubComposite(this, githubGroup, SWT.NONE);
-
-		githubStackLayout.topControl = githubControls;
-		githubGroup.layout();
 	}
 
 	private void createGitLocationComposite(Composite parent)
