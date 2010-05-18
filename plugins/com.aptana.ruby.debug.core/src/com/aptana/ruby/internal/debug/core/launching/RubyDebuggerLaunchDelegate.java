@@ -17,7 +17,10 @@ import java.net.ServerSocket;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -35,6 +38,7 @@ import org.eclipse.debug.core.ILaunchManager;
 import org.eclipse.debug.core.model.IProcess;
 import org.eclipse.debug.core.model.LaunchConfigurationDelegate;
 
+import com.aptana.core.ShellExecutable;
 import com.aptana.core.util.ExecutableUtil;
 import com.aptana.ruby.debug.core.RubyDebugCorePlugin;
 import com.aptana.ruby.debug.core.launching.IRubyLaunchConfigurationConstants;
@@ -93,8 +97,8 @@ public class RubyDebuggerLaunchDelegate extends LaunchConfigurationDelegate
 
 		// Now actually launch the process!
 		Process process = DebugPlugin.exec(commandList.toArray(new String[commandList.size()]),
-				getWorkingDirectory(configuration), getEnvironment(configuration));
-
+				getWorkingDirectory(configuration).toFile(),
+				getEnvironment(configuration));
 		// FIXME Build a label from args?
 		String label = commandList.get(0);
 
@@ -268,7 +272,28 @@ public class RubyDebuggerLaunchDelegate extends LaunchConfigurationDelegate
 
 	private String[] getEnvironment(ILaunchConfiguration configuration) throws CoreException
 	{
-		return DebugPlugin.getDefault().getLaunchManager().getEnvironment(configuration);
+		Map<String, String> env = new HashMap<String, String>();
+		env.putAll(ShellExecutable.getEnvironment());
+		String[] envp =  DebugPlugin.getDefault().getLaunchManager().getEnvironment(configuration);
+		if (envp != null) {
+			for (String envstring : envp) {
+				if (envstring.indexOf((int) '\u0000') != -1) {
+					envstring = envstring.replaceFirst("\u0000.*", "");
+				}
+				int eqlsign = envstring.indexOf('=');
+				if (eqlsign != -1) {
+					env.put(envstring.substring(0,eqlsign), envstring.substring(eqlsign+1));
+				}
+			}
+		}
+		if (env.isEmpty()) {
+			return null;
+		}
+		List<String> list = new ArrayList<String>();
+		for (Entry<String, String> entry : env.entrySet()) {
+			list.add(entry.getKey()+"="+entry.getValue());
+		}
+		return list.toArray(new String[list.size()]);
 	}
 
 	/**
@@ -279,14 +304,14 @@ public class RubyDebuggerLaunchDelegate extends LaunchConfigurationDelegate
 	 * @return
 	 * @throws CoreException
 	 */
-	protected File getWorkingDirectory(ILaunchConfiguration configuration) throws CoreException
+	protected IPath getWorkingDirectory(ILaunchConfiguration configuration) throws CoreException
 	{
 		String workingDirVal = configuration.getAttribute(IRubyLaunchConfigurationConstants.ATTR_WORKING_DIRECTORY,
 				(String) null);
 		if (workingDirVal == null)
 			return null;
-		File workingDirectory = new File(workingDirVal);
-		if (!workingDirectory.isDirectory())
+		IPath workingDirectory = Path.fromOSString(workingDirVal);
+		if (!workingDirectory.toFile().isDirectory())
 			return null;
 		return workingDirectory;
 	}
