@@ -3,7 +3,7 @@ SetCompressor /FINAL /SOLID lzma
 
 # Defines
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION 2.0.0
+!define VERSION 3.0.0
 !define COMPANY "Aptana, Inc."
 !define URL http://www.aptana.com
 
@@ -147,7 +147,7 @@ Section -post SEC0001
         SetShellVarContext all
         SetOutPath $SMPROGRAMS\$StartMenuGroup
         CreateShortCut "$SMPROGRAMS\$StartMenuGroup\$(^Name).lnk" "$INSTDIR\AptanaStudio3.exe" ""
-        WriteINIStr "$SMPROGRAMS\$StartMenuGroup\Aptana Forums.url" "InternetShortcut" "URL" "http://www.aptana.com/forums/"
+        WriteINIStr "$SMPROGRAMS\$StartMenuGroup\Aptana Forums.url" "InternetShortcut" "URL" "https://aptanastudio.tenderapp.com/discussions/"
         WriteINIStr "$SMPROGRAMS\$StartMenuGroup\Aptana Website.url" "InternetShortcut" "URL" "http://www.aptana.com/"
         SetShellVarContext current
     ${endif}    

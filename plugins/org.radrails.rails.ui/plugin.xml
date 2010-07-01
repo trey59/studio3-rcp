@@ -23,7 +23,7 @@
             category="org.radrails.rails.ui.category"
             class="org.radrails.rails.internal.ui.NewProjectWizard"
             finalPerspective="org.radrails.rails.ui.PerspectiveRails"
-            icon="icons/newproj.gif"
+            icon="icons/newproj.png"
             id="org.radrails.rails.ui.projectWizard"
             name="%wizard.name"
             preferredPerspectives="org.radrails.rails.ui.PerspectiveRails"
@@ -69,6 +69,9 @@
                relative="org.eclipse.ui.console.ConsoleView"
                visible="false">
          </view>
+         <viewShortcut
+               id="org.eclipse.ui.console.ConsoleView">
+         </viewShortcut>
          <view
                id="org.eclipse.pde.runtime.LogView"
                relationship="stack"
@@ -100,7 +103,7 @@
                id="com.aptana.ui.WebPerspective">
          </perspectiveShortcut>
          <actionSet
-               id="com.aptana.editor.common.globalActionSet">
+               id="com.aptana.ui.globalActionSet">
          </actionSet>
          <actionSet
                id="com.aptana.terminal.actionSet">
@@ -114,10 +117,17 @@
          <perspectiveShortcut
                id="org.radrails.rails.ui.PerspectiveRails">
          </perspectiveShortcut>
+         <newWizardShortcut
+               id="org.radrails.rails.ui.projectWizard">
+         </newWizardShortcut>
       </perspectiveExtension>
    </extension>
    <extension
          point="org.eclipse.ui.commands">
+      <category
+            id="org.radrails.rails.ui.category"
+            name="%RailsCommandsCategory.name">
+      </category>
       <command
             categoryId="org.radrails.rails.ui.category"
             id="org.radrails.rails.ui.command.server"
@@ -127,45 +137,6 @@
             categoryId="org.radrails.rails.ui.category"
             id="org.radrails.rails.ui.command.debug.server"
             name="%DebugScriptServerAction.label">
-      </command>
-      <category
-            id="org.radrails.rails.ui.category"
-            name="%RailsCommandsCategory.name">
-      </category>
-      <command
-            categoryId="org.radrails.rails.ui.category"
-            defaultHandler="org.radrails.rails.internal.ui.commands.ViewReleaseNotesCommandHandler"
-            description="%ViewReleaseNotes.description"
-            id="org.radrails.rails.ui.command.viewreleasenotes"
-            name="%ViewReleaseNotes.label">
-      </command>
-      <command
-            categoryId="org.radrails.rails.ui.category"
-            defaultHandler="org.radrails.rails.internal.ui.commands.SendFeedbackCommandHandler"
-            description="%SendFeedbackCommand.description"
-            id="org.radrails.rails.ui.command.sendfeedback"
-            name="%SendFeedbackCommand.label">
-      </command>
-      <command
-            categoryId="org.radrails.rails.ui.category"
-            defaultHandler="org.radrails.rails.internal.ui.commands.ReportBugCommandHandler"
-            description="%ReportBugCommand.description"
-            id="org.radrails.rails.ui.command.reportbug"
-            name="%ReportBugCommand.label">
-      </command>
-      <command
-            categoryId="org.radrails.rails.ui.category"
-            defaultHandler="org.radrails.rails.internal.ui.commands.ViewLogCommandHandler"
-            description="%ViewLogCommand.description"
-            id="org.radrails.rails.ui.command.viewlog"
-            name="%ViewLogCommand.Label">
-      </command>
-      <command
-            categoryId="org.radrails.rails.ui.category"
-            defaultHandler="org.radrails.rails.internal.ui.commands.ClearLogCommandHandler"
-            description="%ClearLogCommand.description"
-            id="org.radrails.rails.ui.command.clearlog"
-            name="%ClearLogCommand.Label">
       </command>
       <command
             categoryId="org.radrails.rails.ui.category"
@@ -205,46 +176,40 @@
                id="org.radrails.rails.ui.actions.RunScriptServerAction"
                label="%ScriptServerAction.label"
                tooltip="%ScriptServerAction.tooltip">
+            <enablement>
+               <and>
+                  <objectClass
+                        name="org.eclipse.core.resources.IResource">
+                  </objectClass>
+                  <objectState
+                        name="projectNature"
+                        value="org.radrails.rails.core.railsnature">
+                  </objectState>
+               </and>
+            </enablement>
+         </action>
+         <action
+               class="org.radrails.rails.internal.ui.actions.DebugScriptServerAction"
+               definitionId="org.radrails.rails.ui.command.debug.server"
+               id="org.radrails.rails.ui.actions.DebugScriptServerAction"
+               label="%DebugScriptServerAction.label"
+               tooltip="%DebugScriptServerAction.tooltip">
+            <enablement>
+               <and>
+                  <objectClass
+                        name="org.eclipse.core.resources.IResource">
+                  </objectClass>
+                  <objectState
+                        name="projectNature"
+                        value="org.radrails.rails.core.railsnature">
+                  </objectState>
+               </and>
+            </enablement>
          </action>
       </objectContribution>
    </extension>
    <extension
          point="org.eclipse.ui.menus">
-      <menuContribution
-            locationURI="menu:help?after=additions">
-         <menu
-                id="aptanahelp"
-                label="%Menu.Help.Aptana.label">
-            <command
-                commandId="org.radrails.rails.ui.command.sendfeedback"
-                style="push">
-            </command>
-            <command
-                commandId="org.radrails.rails.ui.command.reportbug"
-                style="push">
-            </command>
-            <separator
-                  name="slot1"
-                  visible="true">
-            </separator>
-            <command
-                commandId="org.radrails.rails.ui.command.viewlog"
-                style="push">
-            </command>
-            <command
-                commandId="org.radrails.rails.ui.command.clearlog"
-                style="push">
-            </command>
-            <separator
-                  name="slot2"
-                  visible="true">
-            </separator>
-            <command
-                  commandId="org.radrails.rails.ui.command.viewreleasenotes"
-                  style="push">
-            </command>
-         </menu>
-      </menuContribution>
       <menuContribution
             locationURI="toolbar:com.aptana.explorer.gear?after=group.run">
          <command
@@ -326,5 +291,14 @@
             </enablement>
          </action>
       </actionSet>
+   </extension>
+   <extension
+         point="org.eclipse.ui.navigator.navigatorContent">
+       <commonWizard
+            associatedExtensionId="org.eclipse.ui.navigator.resourceContent"
+            type="new"
+            wizardId="org.radrails.rails.ui.projectWizard">
+         <enablement></enablement>
+      </commonWizard>
    </extension>
 </plugin>

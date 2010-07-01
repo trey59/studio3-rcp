@@ -82,7 +82,7 @@ public class NewProjectWizard extends BasicNewResourceWizard implements IExecuta
 	protected void initializeDefaultPageImageDescriptor()
 	{
 		ImageDescriptor desc = RailsUIPlugin.imageDescriptorFromPlugin(RailsUIPlugin.getPluginIdentifier(),
-				"icons/newproj_wiz.gif"); //$NON-NLS-1$
+				"icons/newproj_wiz.png"); //$NON-NLS-1$
 		setDefaultPageImageDescriptor(desc);
 	}
 
@@ -167,7 +167,7 @@ public class NewProjectWizard extends BasicNewResourceWizard implements IExecuta
 					return Status.CANCEL_STATUS;
 
 				// Now launch the rails command in a terminal!
-				TerminalView terminal = TerminalView.openView(project.getName(), "rails", project.getLocation()); //$NON-NLS-1$
+				TerminalView terminal = TerminalView.openView(project.getName(), project.getName(), project.getLocation()); //$NON-NLS-1$
 				terminal.sendInput("rails .\n"); //$NON-NLS-1$
 
 				return Status.OK_STATUS;
